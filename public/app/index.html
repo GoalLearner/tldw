@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport-fit=cover is required for env(safe-area-inset-*) on iPhone -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="Gistly — paste a YouTube link and get the gist: a TL;DR, key points, and a cheat sheet." />
+  <title>Gistly</title>
+
+  <!-- iOS standalone / home-screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Gistly" />
+  <meta name="theme-color" content="#F1F4F9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0E1218" media="(prefers-color-scheme: dark)" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="app.js" defer></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================ WELCOME ============================ -->
+  <section class="screen screen--welcome" id="screen-welcome">
+    <div class="welcome-center">
+      <div class="welcome-mark">
+        <svg width="34" height="34" viewBox="0 0 12 12" aria-hidden="true"><polygon points="2.6,1.6 10,6 2.6,10.4" fill="#fff"></polygon></svg>
+      </div>
+      <h1 class="welcome-title">Skip the watch.</h1>
+      <p class="welcome-sub">Paste any YouTube link and get the gist in seconds — a TL;DR, the key points, and a handy cheat sheet.</p>
+    </div>
+    <button class="btn-primary" id="welcome-start" type="button">Get started</button>
+    <div class="welcome-note">No sign-up needed</div>
+  </section>
+
+  <!-- ============================ HOME ============================ -->
+  <section class="screen screen--home" id="screen-home" hidden>
+    <div class="home-head">
+      <div class="brand">
+        <span class="brand-mark"><svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><polygon points="2.6,1.6 10,6 2.6,10.4" fill="#fff"></polygon></svg></span>
+        <span class="brand-name">Gistly</span>
+      </div>
+      <button class="icon-btn" id="home-history-btn" type="button" aria-label="History">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"></circle><path d="M12 7v5l3.5 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+    </div>
+
+    <div class="home-body">
+      <h1 class="home-h1">Summarize any video.</h1>
+      <p class="home-tag">Paste a link and skip the watch.</p>
+
+      <div class="paste-box" id="home-paste">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M8.6 11.4a3 3 0 0 0 4.24 0l2.5-2.5a3 3 0 1 0-4.24-4.24l-1 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path><path d="M11.4 8.6a3 3 0 0 0-4.24 0l-2.5 2.5a3 3 0 1 0 4.24 4.24l1-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></svg></span>
+        <input class="txt" id="home-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste a YouTube link…" aria-label="YouTube link" />
+      </div>
+
+      <button class="btn-primary" id="home-submit" type="button">Summarize<span class="arrow">→</span></button>
+
+      <div class="home-nudge" id="home-nudge" hidden></div>
+
+      <div class="chips" id="home-chips"></div>
+    </div>
+
+    <div class="share-hint">
+      <span class="emoji">⚡</span>
+      <span class="copy">Watching on YouTube? Tap <b>Share → Gistly</b> and the summary opens instantly.</span>
+    </div>
+  </section>
+
+  <!-- ============================ LOADING ============================ -->
+  <section class="screen screen--loading" id="screen-loading" hidden>
+    <div class="load-thumb" id="load-thumb" hidden>
+      <img id="load-thumb-img" alt="" />
+      <div class="shim"></div>
+    </div>
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="load-msg" id="load-msg" aria-live="polite">Grabbing the transcript…</div>
+    <div class="load-sub">Just a few seconds…</div>
+    <button class="load-cancel" id="load-cancel" type="button">Cancel</button>
+  </section>
+
+  <!-- ============================ RESULT ============================ -->
+  <section class="screen screen--result" id="screen-result" hidden>
+    <div class="result-bar">
+      <button class="icon-btn icon-btn--sm" id="result-back" type="button" aria-label="Back">
+        <svg width="11" height="18" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+      <div class="actions">
+        <button class="icon-btn icon-btn--sm" id="result-fav" type="button" aria-label="Favorite"></button>
+        <button class="icon-btn icon-btn--sm" id="result-share" type="button" aria-label="Share">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V3m0 0L8 7m4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="result-head">
+      <div class="thumb"><img id="result-thumb-img" alt="" /></div>
+      <div class="meta-wrap">
+        <div class="result-title" id="result-title"></div>
+        <div class="result-meta" id="result-meta"></div>
+      </div>
+    </div>
+
+    <section class="card card--tldr">
+      <div class="card-head">
+        <span class="card-label">TL;DR</span>
+        <button class="copy-btn" id="copy-tldr" type="button">Copy</button>
+      </div>
+      <p class="tldr-text" id="result-tldr"></p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <span class="card-label">Key Points</span>
+        <button class="copy-btn" id="copy-points" type="button">Copy</button>
+      </div>
+      <ul class="bullets" id="result-points"></ul>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <span class="card-label">Cheat Sheet</span>
+        <button class="copy-btn" id="copy-cheat" type="button">Copy</button>
+      </div>
+      <ul class="bullets bullets--cheat" id="result-cheat"></ul>
+    </section>
+
+    <button class="btn-primary result-again" id="result-again" type="button"><span class="arrow">↻</span>Summarize another</button>
+
+    <!-- share-out bottom sheet -->
+    <div class="sheet-overlay" id="shareout" hidden>
+      <div class="sheet" role="dialog" aria-label="Share summary">
+        <button class="sheet-grab" id="shareout-close" type="button" aria-label="Close"></button>
+        <div class="sheet-label">Share summary</div>
+        <div class="sheet-preview">
+          <div class="tag" id="shareout-tag">TL;DR</div>
+          <div class="body" id="shareout-tldr"></div>
+        </div>
+        <div class="sheet-actions">
+          <button class="sheet-btn-ghost" id="shareout-copy" type="button">Copy as text</button>
+          <button class="sheet-btn-fill" id="shareout-share" type="button">Share</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ HISTORY ============================ -->
+  <section class="screen screen--history" id="screen-history" hidden>
+    <div class="history-head">
+      <button class="icon-btn icon-btn--sm" id="history-back" type="button" aria-label="Back">
+        <svg width="11" height="18" viewBox="0 0 12 20" fill="none" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+      <h1 class="history-h1">History</h1>
+      <span class="history-offline">Available offline</span>
+    </div>
+
+    <div class="search">
+      <span class="ic"><svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="6.5" stroke="currentColor" stroke-width="1.7"></circle><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg></span>
+      <input id="history-search" type="text" placeholder="Search your summaries" aria-label="Search summaries" autocomplete="off" />
+    </div>
+
+    <div class="history-list" id="history-list"></div>
+    <div class="history-empty" id="history-empty" hidden></div>
+  </section>
+
+</div>
+</body>
+</html>

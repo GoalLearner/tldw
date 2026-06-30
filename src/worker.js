@@ -142,15 +142,23 @@ async function handleSummarize(request, env) {
   }
   const { content, durationSeconds } = transcriptResult;
 
-  // 5. Summarize (swappable seam) -------------------------------------------
-  const summary = await summarize(content, durationSeconds, env);
+  // 5. Summarize (swappable seam) + fetch lightweight video metadata in
+  // parallel. title/channel come from YouTube's PUBLIC oEmbed endpoint (no key)
+  // so the UI can show a real title + channel; it's best-effort and overlaps
+  // the LLM call, so it adds no latency and never blocks the summary.
+  const [summary, meta] = await Promise.all([
+    summarize(content, durationSeconds, env),
+    getVideoMeta(videoId),
+  ]);
   if (!summary) {
     return json({ error: "summary_failed" }, 502);
   }
+  // Merge the metadata into the object we cache + return.
+  const enriched = { ...summary, title: meta.title, channel: meta.channel };
 
   // 6. Write to cache (D1). INSERT OR IGNORE so two concurrent requests for
   // the same fresh video don't error on the PRIMARY KEY.
-  const summaryJson = JSON.stringify(summary);
+  const summaryJson = JSON.stringify(enriched);
   await env.DB.prepare(
     "INSERT OR IGNORE INTO summaries (video_id, summary_json, created_at) VALUES (?, ?, ?)"
   )
@@ -168,7 +176,7 @@ async function handleSummarize(request, env) {
     .run();
 
   // 7. Return the fresh summary.
-  return json({ ...summary, cached: false }, 200);
+  return json({ ...enriched, cached: false }, 200);
 }
 
 // ============================================================================
@@ -220,6 +228,29 @@ async function getTranscript(videoId, env) {
   }
 
   return { content, durationSeconds };
+}
+
+// ============================================================================
+// SWAPPABLE SEAM #1b — getVideoMeta(videoId)
+// Best-effort video title + channel from YouTube's PUBLIC oEmbed endpoint
+// (no API key, no transcript needed). Used only to LABEL the summary in the UI.
+// Any failure is swallowed and returns nulls so it never blocks a summary.
+// ============================================================================
+async function getVideoMeta(videoId) {
+  try {
+    const url =
+      "https://www.youtube.com/oembed?format=json&url=" +
+      encodeURIComponent("https://www.youtube.com/watch?v=" + videoId);
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return { title: null, channel: null };
+    const data = await res.json();
+    return {
+      title: typeof data.title === "string" ? data.title : null,
+      channel: typeof data.author_name === "string" ? data.author_name : null,
+    };
+  } catch {
+    return { title: null, channel: null };
+  }
 }
 
 // ============================================================================

@@ -7,6 +7,28 @@ tiny and readable: a vanilla-JS frontend, a single zero-dependency Cloudflare Wo
 D1 database that caches every summary. Caching plus per-IP rate limiting keep running costs
 down near zero.
 
+## Two front-ends
+
+Both share the same `/api/summarize` Worker backend:
+
+- **`/`** — the original one-screen web summarizer (`public/index.html`).
+- **`/app/`** — the **Gistly mobile app** (`public/app/`): an iOS-first, installable
+  PWA with the full flow — a welcome screen, paste/summarize, a TL;DR + key points +
+  cheat sheet result, plus **searchable offline history** and **favorites** (stored
+  on-device), per-card copy, and a share sheet. Open
+  `http://localhost:8799/app/` under `wrangler dev`.
+
+The app respects light/dark mode, registers a service worker for an offline shell,
+and declares a Web **share target** + accepts `?url=` / `?v=` deep links, so a shared
+YouTube link summarizes the moment the app opens. The design was handed off from
+Claude Design ("Gistly Phone" / "Gistly Mobile App"); the mock's iOS device chrome
+was stripped in favor of real `safe-area-inset` padding.
+
+> The Worker also returns the video's **title** and **channel** (from YouTube's public
+> oEmbed endpoint, best-effort, fetched in parallel with the LLM call) alongside the
+> summary, so the UI can label results. This is purely additive — the original
+> `{ tldr, keyPoints, cheatSheet, cached }` response shape is unchanged.
+
 ## Setup
 
 1. **Get a free Supadata API key** at [supadata.ai](https://supadata.ai). The free tier
