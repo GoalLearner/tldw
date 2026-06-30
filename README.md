@@ -35,7 +35,13 @@ down near zero.
    wrangler d1 execute tldw-cache --file=schema.sql
    ```
    Add `--local` (e.g. `wrangler d1 execute tldw-cache --local --file=schema.sql`) if you
-   also want the table in the local dev database.
+   also want the tables in the local dev database.
+
+   `schema.sql` defines two tables — `summaries` (the summary cache) and `daily_usage`
+   (the daily global cap counter). The statements use `CREATE TABLE IF NOT EXISTS`, so
+   re-running this command is safe and idempotent. **Whenever `schema.sql` changes, re-run
+   it: with `--local` to update your local dev DB, and the same command *without* `--local`
+   to apply it to the deployed Cloudflare D1 database.**
 
 5. **Set your secrets** (these are NOT stored in `wrangler.toml` — never commit API keys):
    ```bash

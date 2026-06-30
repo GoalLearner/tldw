@@ -63,6 +63,7 @@
     invalid_id:    "Hmm, that doesn't look like a YouTube link — double-check and try again.",
     no_transcript: "This video doesn't have a transcript we can read — try a different one.",
     rate_limited:  'Whoa, slow down a sec — try again in a minute.',
+    daily_cap:     "We've hit today's free limit — please check back tomorrow.",
     generic:       'Something went wrong on our end. Give it another try.'
   };
 
@@ -330,6 +331,9 @@
       msg = ERROR_MESSAGES.no_transcript;
     } else if (code === 'invalid_id' || status === 400) {
       msg = ERROR_MESSAGES.invalid_id;
+    } else if (code === 'daily_cap') {
+      // daily_cap shares HTTP 429 with rate_limited, so match the code FIRST.
+      msg = ERROR_MESSAGES.daily_cap;
     } else if (code === 'rate_limited' || status === 429) {
       msg = ERROR_MESSAGES.rate_limited;
     } else {

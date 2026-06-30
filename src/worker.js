@@ -35,6 +35,12 @@ function json(obj, status = 200) {
 // Canonical video-id shape (must match the frontend + the shared contract).
 const VIDEO_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 
+// Daily global circuit breaker: an app-wide cap on UNCACHED summaries per UTC
+// day. Sits between the per-IP rate limiter and the provider's own spending cap
+// as a gentle in-app backstop against a surprise bill. Easy to tune — bump this
+// number, or override per-environment with a DAILY_CAP var in wrangler.toml.
+const DAILY_CAP = 500;
+
 export default {
   async fetch(request, env, ctx) {
     // Outer try/catch — any unexpected throw becomes a clean 500 with CORS.
@@ -108,6 +114,23 @@ async function handleSummarize(request, env) {
     return json({ ...summary, cached: true }, 200);
   }
 
+  // 3b. Daily global circuit breaker ----------------------------------------
+  // Runs AFTER the cache check (cached hits above are always served and never
+  // count against the cap) and BEFORE any paid Supadata / LLM call. If we've
+  // already generated DAILY_CAP fresh summaries today (UTC), refuse new ones.
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD" in UTC
+  const dailyCap = Number(env.DAILY_CAP) > 0 ? Number(env.DAILY_CAP) : DAILY_CAP;
+  const usageRow = await env.DB.prepare(
+    "SELECT count FROM daily_usage WHERE day = ?"
+  )
+    .bind(today)
+    .first();
+  const usedToday =
+    usageRow && typeof usageRow.count === "number" ? usageRow.count : 0;
+  if (usedToday >= dailyCap) {
+    return json({ error: "daily_cap" }, 429);
+  }
+
   // 4. Fetch transcript (swappable seam) ------------------------------------
   const transcriptResult = await getTranscript(videoId, env);
   if (
@@ -132,6 +155,16 @@ async function handleSummarize(request, env) {
     "INSERT OR IGNORE INTO summaries (video_id, summary_json, created_at) VALUES (?, ?, ?)"
   )
     .bind(videoId, summaryJson, Date.now())
+    .run();
+
+  // 6b. Count this freshly generated summary against today's global cap.
+  // Only REAL generations reach this line — cache hits and every error/early
+  // return above bail out first, so they never increment the counter. The
+  // upsert is atomic, so concurrent fresh requests can't lose a count.
+  await env.DB.prepare(
+    "INSERT INTO daily_usage (day, count) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET count = count + 1"
+  )
+    .bind(today)
     .run();
 
   // 7. Return the fresh summary.

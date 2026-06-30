@@ -16,3 +16,16 @@ CREATE TABLE IF NOT EXISTS summaries (
   summary_json TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
+
+-- Daily global circuit breaker: one row per UTC day counting how many UNCACHED
+-- summaries were generated that day. The Worker reads this after the cache
+-- check and refuses new generations once the count hits DAILY_CAP (a gentle
+-- app-wide backstop on top of the per-IP rate limiter). Cache hits never count.
+--
+-- Columns:
+--   day    UTC date string "YYYY-MM-DD" (e.g. "2026-06-29") — primary key
+--   count  number of freshly generated summaries on that day
+CREATE TABLE IF NOT EXISTS daily_usage (
+  day TEXT PRIMARY KEY,
+  count INTEGER NOT NULL
+);
