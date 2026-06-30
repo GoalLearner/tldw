@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Mobile-first: ensure proper scaling on phones -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="TLDW — paste a YouTube link and get a TL;DR, key points, and a cheat sheet. Skip the watch." />
+  <title>TLDW — Summarize any YouTube video</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!--
+    ELEMENT CONTRACT (kept in sync with the id list documented at the top of app.js):
+      #summarize-form  — wraps the input + button so Enter submits naturally
+      #url-input       — the YouTube link text field
+      #summarize-btn   — primary submit button
+      #error           — inline error area (aria-live), hidden by default
+      #loading         — loading area (spinner + rotating status), hidden by default
+      #status-text     — the rotating status line inside #loading (aria-live)
+      #results         — results area, hidden by default
+      #cached-pill     — subtle "loaded instantly" pill, hidden unless cached
+      #tldr-text       — the TL;DR paragraph
+      #keypoints-list  — the Key Points <ul>
+      #cheatsheet-list — the Cheat Sheet <ul>
+      .copy-btn[data-target] — per-card Copy buttons (data-target points at the content id)
+      #reset-btn       — "Summarize another" control that resets to the input view
+  -->
+  <main class="card" role="main">
+    <!-- Heading + subtitle -->
+    <header class="card__head">
+      <h1 class="title">Summarize any YouTube video</h1>
+      <p class="subtitle">Paste a link and skip the watch.</p>
+    </header>
+
+    <!-- Input + submit. A real <form> so pressing Enter submits naturally. -->
+    <form id="summarize-form" class="form" novalidate>
+      <label for="url-input" class="visually-hidden">YouTube video link</label>
+      <input
+        id="url-input"
+        name="url"
+        class="input"
+        type="text"
+        inputmode="url"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        placeholder="Paste a YouTube link…"
+        aria-describedby="error"
+      />
+      <button id="summarize-btn" class="btn btn--primary" type="submit">
+        Summarize
+      </button>
+    </form>
+
+    <!-- Inline error area. aria-live so screen readers announce it. Hidden by default. -->
+    <p id="error" class="error" role="alert" aria-live="assertive" hidden></p>
+
+    <!-- Loading area: spinner + rotating status text. Hidden by default. -->
+    <div id="loading" class="loading" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="status-text" class="status-text">Grabbing the transcript…</span>
+    </div>
+
+    <!-- Results area: three labeled cards, each with a Copy button. Hidden by default. -->
+    <section id="results" class="results" aria-live="polite" hidden>
+      <!-- Subtle pill shown only when the server returns cached: true -->
+      <p id="cached-pill" class="pill" hidden>⚡ Loaded instantly</p>
+
+      <!-- TL;DR -->
+      <article class="result-card">
+        <div class="result-card__head">
+          <h2 class="result-card__label">TL;DR</h2>
+          <button class="copy-btn" type="button" data-target="tldr-text" aria-label="Copy TL;DR">
+            Copy
+          </button>
+        </div>
+        <p id="tldr-text" class="tldr"></p>
+      </article>
+
+      <!-- Key Points -->
+      <article class="result-card">
+        <div class="result-card__head">
+          <h2 class="result-card__label">Key Points</h2>
+          <button class="copy-btn" type="button" data-target="keypoints-list" aria-label="Copy key points">
+            Copy
+          </button>
+        </div>
+        <ul id="keypoints-list" class="bullets"></ul>
+      </article>
+
+      <!-- Cheat Sheet -->
+      <article class="result-card">
+        <div class="result-card__head">
+          <h2 class="result-card__label">Cheat Sheet</h2>
+          <button class="copy-btn" type="button" data-target="cheatsheet-list" aria-label="Copy cheat sheet">
+            Copy
+          </button>
+        </div>
+        <ul id="cheatsheet-list" class="bullets"></ul>
+      </article>
+
+      <!-- Reset back to the input view -->
+      <button id="reset-btn" class="btn btn--ghost" type="button">
+        Summarize another
+      </button>
+    </section>
+  </main>
+
+  <!-- Frontend logic. defer so the DOM is ready before it runs. -->
+  <script src="app.js" defer></script>
+</body>
+</html>

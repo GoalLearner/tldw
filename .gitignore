@@ -1,0 +1,16 @@
+# Local dev secrets — NEVER commit these
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Wrangler local state (local D1 sqlite, caches, build output)
+.wrangler/
+dist/
+
+# Node (only if you add tooling later — the Worker itself has zero deps)
+node_modules/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log

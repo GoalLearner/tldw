@@ -1,0 +1,15 @@
+# Local development secrets for `wrangler dev`.
+# Copy this file to `.dev.vars` (which is gitignored) and fill in real values.
+#   cp .dev.vars.example .dev.vars
+#
+# NOTE: this file is ONLY for local dev. For the deployed Worker, set the same
+# keys with `wrangler secret put SUPADATA_API_KEY` etc. (see README step 5).
+
+# Required: transcript provider (https://supadata.ai)
+SUPADATA_API_KEY=
+
+# Required when LLM_PROVIDER="openai" (the default) — https://platform.openai.com
+OPENAI_API_KEY=
+
+# Optional: only needed when LLM_PROVIDER="anthropic" — https://console.anthropic.com
+ANTHROPIC_API_KEY=

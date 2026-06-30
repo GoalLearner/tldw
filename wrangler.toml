@@ -1,0 +1,45 @@
+name = "tldw"
+main = "src/worker.js"
+# Any recent date is fine; bump if wrangler warns about a newer compatibility date.
+compatibility_date = "2025-09-01"
+
+# --- Static assets ---------------------------------------------------------
+# Serve the ./public directory (index.html, style.css, app.js) as static files.
+# run_worker_first routes ONLY /api/* to the Worker; everything else is served
+# straight from the assets binding (no Worker invocation, no cost).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]   # /api/* hits the Worker; everything else serves static
+
+# --- D1 database (summary cache) -------------------------------------------
+# The cache that makes repeat lookups free. Create it once with:
+#   wrangler d1 create tldw-cache
+# then paste the returned id into database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "tldw-cache"
+database_id = "REPLACE_WITH_ID_FROM_wrangler_d1_create"   # fill after `wrangler d1 create`
+
+# --- Rate limiting ----------------------------------------------------------
+# Cloudflare's native rate-limit binding (current documented syntax: a top-level
+# [[ratelimits]] table). Used in the Worker as env.RATE_LIMITER.limit({ key }).
+# Easy to tune: change limit/period below. period MUST be 10 or 60. Docs:
+# https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"   # arbitrary positive-integer id, unique within your account
+
+  [ratelimits.simple]
+  limit = 10            # 10 requests...
+  period = 60           # ...per 60s per key (period must be 10 or 60)
+
+# --- Plain (non-secret) vars ------------------------------------------------
+[vars]
+LLM_PROVIDER = "openai"   # "openai" | "anthropic"
+
+# --- SECRETS ARE NOT IN THIS FILE ------------------------------------------
+# Never commit API keys. Set these via the Wrangler CLI instead:
+#   wrangler secret put SUPADATA_API_KEY
+#   wrangler secret put OPENAI_API_KEY
+#   wrangler secret put ANTHROPIC_API_KEY   # only if using LLM_PROVIDER = "anthropic"
