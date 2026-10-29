@@ -14,3 +14,8 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Env files: the Worker reads .dev.vars, but never let a .env slip in either
+.env
+.env.*
+!.env.example
